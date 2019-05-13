@@ -7,26 +7,44 @@ spec :: Spec
 spec = do
     describe "New Game" $ do
         it "starts with an 10 x 10 board" $ do
-            let board = newGame
-            length board `shouldBe` 100
+            let Board s ts = newGame
+            length ts `shouldBe` 100
+            s `shouldBe` 10
 
         it "starts with 4 pieces per player" $ do
             let
-                board = newGame
-            (length $ filter isWhite board) `shouldBe` 4
-            (length $ filter isBlack board) `shouldBe` 4
+                Board _ ts = newGame
+            (length $ filter isWhite ts) `shouldBe` 4
+            (length $ filter isBlack ts) `shouldBe` 4
 
-playerCount :: Board -> (Integer, Integer) -> (Integer, Integer)
-playerCount (White:ts) (white,black) = playerCount ts (white+1, black)
-playerCount (Black:ts) (white,black) = playerCount ts (white, black+1)
-playerCount (Empty:ts) count = playerCount ts count
-playerCount [] count = count
+    -- describe "Player" $ do
+    --     it "can move peice horizontally right" $ do
+    --         let
+    --             board = newBoard [0] [] [] 16
+
+
 
 --------------------------------------------------------
-data Tile = Empty | White | Black
-    deriving (Eq,Show)
+data Board = Board Size [Tile]
+type Size = Integer
 
-type Board = [Tile]
+newGame :: Board
+newGame = newBoard [3,6,30,39] [60,69,93,96] [] 10
+
+newBoard whites blacks fires size = Board size tiles
+    where
+        tiles = setTile <$> [1..(size*size)]
+        wset = S.fromList whites
+        bset = S.fromList blacks
+        fset = S.fromList fires
+        setTile i
+            | S.member i wset = White
+            | S.member i bset = Black
+            | S.member i fset = Fire
+            | otherwise       = Empty
+
+data Tile = Empty | White | Black | Fire
+    deriving (Eq,Show)
 
 isWhite :: Tile -> Bool
 isWhite White = True
@@ -35,15 +53,3 @@ isWhite _     = False
 isBlack :: Tile -> Bool
 isBlack Black = True
 isBlack _     = False
-
-newGame :: Board
-newGame = newBoard [3,6,30,39] [60,69,93,96] 100
-
-newBoard ws bs size = setTile <$> [1..size]
-    where
-        wset = S.fromList ws
-        bset = S.fromList bs
-        setTile i
-            | S.member i wset = White
-            | S.member i bset = Black
-            | otherwise       = Empty
