@@ -6,12 +6,12 @@ import qualified Data.Set as S (fromList, member)
 spec :: Spec
 spec = do
     describe "Traditional Board" $ do
-        it "starts with an 10 x 10 board" $ do
+        it "is a 10 x 10 board" $ do
             let Board s ts = traditionalBoard
             length ts `shouldBe` 100
             s `shouldBe` 10
 
-        it "starts with 4 pieces per player" $ do
+        it "has 4 pieces per player" $ do
             let
                 Board _ ts = traditionalBoard
             (length $ filter isWhite ts) `shouldBe` 4
