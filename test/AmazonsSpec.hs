@@ -1,65 +1,81 @@
 module AmazonsSpec where
 --
 import Test.Hspec
-import qualified Data.Map.Strict as M (Map (..), fromList, lookup)
+
+import Data.Text (Text)
+import qualified Data.Map.Strict as M (Map (..), (!?), delete, fromList, toList, lookup, alter)
 --
 spec :: Spec
 spec = do
     describe "Traditional Board" $ do
         it "is a 10 x 10 board" $ do
             let Board s ts = traditionalBoard
-
-            length ts `shouldBe` 100
             s `shouldBe` 10
 
         it "has 4 pieces per player" $ do
-            let Board _ ts = traditionalBoard
-
-            (length $ filter isWhite ts) `shouldBe` 4
-            (length $ filter isBlack ts) `shouldBe` 4
+            let
+                Board _ tiles = traditionalBoard
+                count' f = length $ filter f $ map snd $ M.toList tiles
+            count' isWhite `shouldBe` 4
+            count' isBlack `shouldBe` 4
 
     describe "Amazon" $ do
         it "can move own color horizontally" $ do
-            testValidateMove White White 0 9 `shouldBe` True
+            let color = White
+                row = 0
+                from = (0,row)
+                to = (9,row)
+                board = Board 10 $ M.fromList [(from, Amazon color)]
+                actual = move color from to board
+                expected = Board 10 $ M.fromList [(to, Amazon color)]
+            actual `shouldBe` (Right expected)
 
+        -- it "cannot move opposite color anywhere" $ do
+        --     testValidateMove Black White 0 9 [] `shouldBe` False
+        --     testValidateMove White Black 0 9 [] `shouldBe` False
 
-testValidateMove playerColor amazonColor from to =
-    let board = occupyBoard (M.fromList [(from, Amazon amazonColor)]) 10
-    in validateMove board playerColor from to
+        -- it "cannot move over fire" $ do
+        --     testValidateMove White White 0 9 [(4,Fire)] `shouldBe` False
 
 --------------------------------------------------------
-data Board  = Board Size [Tile] deriving (Eq,Show)
-data Color  = Black | White deriving (Eq,Show)
-data Player = Player Color deriving (Eq,Show)
 type Size   = Int
-data Tile   = Empty | Amazon Color | Fire deriving (Eq,Show)
-type TileMap = M.Map Int Tile
+type Tiles  = M.Map Coordinate Tile
+type Column = Int
+type Row    = Int
+type Coordinate = (Column, Row)
 
-type MoveFrom = Int
-type MoveTo   = Int
-data Turn     = Turn MoveFrom MoveTo
+data Board  = Board Size Tiles deriving (Eq,Show)
+data Color  = Black | White deriving (Eq,Show)
+data Tile   = Amazon Color | Fire deriving (Eq,Show)
+data MoveError =  OutOfBoundsFromCoordinate
+                | YourAmazonNotAtOrigin
+                    deriving (Eq,Show)
 
-validateMove :: Board -> Color -> MoveFrom -> MoveTo -> Bool
-validateMove b c f t = True
+-- BOARD
+move :: Color -> Coordinate -> Coordinate -> Board -> Either MoveError Board
+move playerColor from to (Board size tiles) =
+    case M.lookup from tiles of
+        (Just (Amazon c)) | c == playerColor ->
+            let mFromTile = tiles M.!? from
+            in Right $ Board size $ M.delete from $ M.alter (const mFromTile) to tiles
+        Nothing -> undefined --Left OutOfBoundsFromCoordinate
+        _       -> undefined --Left YourAmazonNotAtOrigin
 
 traditionalBoard :: Board
-traditionalBoard = occupyBoard occupiedTiles 10
-    where occupiedTiles = tileMap [3,6,30,39] [60,69,93,96] mempty
+traditionalBoard = Board 10 $ buildTilesByType [(3,0),(6,0),(0,2), (9,2)] [(0,6),(9,6),(3,9),(6,9)] mempty
 
-tileMap :: [Int] -> [Int] -> [Int] -> TileMap
-tileMap whites blacks fires = (M.fromList (ws ++ bs ++ fs))
+buildTilesByType :: [Coordinate] -> [Coordinate] -> [Coordinate] -> Tiles
+buildTilesByType whites blacks fires = (M.fromList (ws ++ bs ++ fs))
     where set c i = (i, c)
           ws = set (Amazon White) <$> whites
           bs = set (Amazon Black) <$> blacks
           fs = set Fire <$> fires
 
-occupyBoard :: TileMap -> Int -> Board
-occupyBoard occupiedTiles size = Board size tiles
-    where tiles = setTile <$> [1..(size*size)]
-          setTile i = case M.lookup i occupiedTiles of
-                (Just t) -> t
-                Nothing  -> Empty
+-- TILES
+isPathEmpty :: Coordinate -> Coordinate -> Board -> Bool
+isPathEmpty = undefined
 
+-- TILE
 isWhite :: Tile -> Bool
 isWhite (Amazon White) = True
 isWhite _     = False
@@ -67,7 +83,3 @@ isWhite _     = False
 isBlack :: Tile -> Bool
 isBlack (Amazon Black) = True
 isBlack _     = False
-
-isEmpty :: Tile -> Bool
-isEmpty Empty = True
-isEmpty _     = False
