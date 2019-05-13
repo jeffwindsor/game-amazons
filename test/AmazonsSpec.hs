@@ -5,15 +5,15 @@ import qualified Data.Set as S (fromList, member)
 --
 spec :: Spec
 spec = do
-    describe "New Game" $ do
+    describe "Traditional Board" $ do
         it "starts with an 10 x 10 board" $ do
-            let Board s ts = newGame
+            let Board s ts = traditionalBoard
             length ts `shouldBe` 100
             s `shouldBe` 10
 
         it "starts with 4 pieces per player" $ do
             let
-                Board _ ts = newGame
+                Board _ ts = traditionalBoard
             (length $ filter isWhite ts) `shouldBe` 4
             (length $ filter isBlack ts) `shouldBe` 4
 
@@ -28,9 +28,10 @@ spec = do
 data Board = Board Size [Tile]
 type Size = Integer
 
-newGame :: Board
-newGame = newBoard [3,6,30,39] [60,69,93,96] [] 10
+traditionalBoard :: Board
+traditionalBoard = newBoard [3,6,30,39] [60,69,93,96] [] 10
 
+newBoard :: [Integer] -> [Integer] -> [Integer] -> Integer -> Board
 newBoard whites blacks fires size = Board size tiles
     where
         tiles = setTile <$> [1..(size*size)]
