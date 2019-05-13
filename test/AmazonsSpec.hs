@@ -18,21 +18,14 @@ spec = do
             (length $ filter isWhite ts) `shouldBe` 4
             (length $ filter isBlack ts) `shouldBe` 4
 
-    -- describe "Amazon" $ do
-    --     it "can move horizontally" $ do
-    --         let
-    --             from = 0
-    --             to = 3
-    --             color = White
-    --             board = newBoard [from] [] [] 4
-
-    --             turn = Turn from to
-    --             actual = validateMove board color from to
-    --         actual `shouldBe` True
+    describe "Amazon" $ do
+        it "can move own color horizontally" $ do
+            testValidateMove White White 0 9 `shouldBe` True
 
 
-
-
+testValidateMove playerColor amazonColor from to =
+    let board = occupyBoard (M.fromList [(from, Amazon amazonColor)]) 10
+    in validateMove board playerColor from to
 
 --------------------------------------------------------
 data Board  = Board Size [Tile] deriving (Eq,Show)
@@ -40,29 +33,32 @@ data Color  = Black | White deriving (Eq,Show)
 data Player = Player Color deriving (Eq,Show)
 type Size   = Int
 data Tile   = Empty | Amazon Color | Fire deriving (Eq,Show)
+type TileMap = M.Map Int Tile
 
 type MoveFrom = Int
 type MoveTo   = Int
 data Turn     = Turn MoveFrom MoveTo
 
 validateMove :: Board -> Color -> MoveFrom -> MoveTo -> Bool
-validateMove b c f t = False
+validateMove b c f t = True
 
 traditionalBoard :: Board
-traditionalBoard = newBoard starts 10
-    where
-        set c i = (i, c)
-        whites = set (Amazon White) <$> [3,6,30,39]
-        blacks = set (Amazon Black) <$> [60,69,93,96]
-        starts = (M.fromList (whites ++ blacks))
+traditionalBoard = occupyBoard occupiedTiles 10
+    where occupiedTiles = tileMap [3,6,30,39] [60,69,93,96] mempty
 
-newBoard :: M.Map Int Tile -> Int -> Board
-newBoard starts size = Board size tiles
-    where
-        tiles = setTile <$> [1..(size*size)]
-        setTile i = case M.lookup i starts of
-                        (Just t) -> t
-                        Nothing  -> Empty
+tileMap :: [Int] -> [Int] -> [Int] -> TileMap
+tileMap whites blacks fires = (M.fromList (ws ++ bs ++ fs))
+    where set c i = (i, c)
+          ws = set (Amazon White) <$> whites
+          bs = set (Amazon Black) <$> blacks
+          fs = set Fire <$> fires
+
+occupyBoard :: TileMap -> Int -> Board
+occupyBoard occupiedTiles size = Board size tiles
+    where tiles = setTile <$> [1..(size*size)]
+          setTile i = case M.lookup i occupiedTiles of
+                (Just t) -> t
+                Nothing  -> Empty
 
 isWhite :: Tile -> Bool
 isWhite (Amazon White) = True
